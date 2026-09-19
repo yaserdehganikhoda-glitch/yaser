@@ -1,0 +1,1447 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl" class="h-full bg-slate-950 text-slate-100">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>کوک کودک | استودیوی تخصصی الگوسازی و تولید پوشاک کودکان</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      rtl: true,
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0f9ff',
+              100: '#e0f2fe',
+              500: '#0284c7',
+              600: '#0369a1',
+              700: '#075985',
+              accent: '#f59e0b'
+            }
+          },
+          fontFamily: {
+            sans: ['Vazirmatn', 'Tahoma', 'sans-serif']
+          }
+        }
+      }
+    }
+  </script>
+  
+  <!-- Google Fonts Vazirmatn -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800&display=swap">
+  
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <!-- jsPDF for 1:1 Tiled Export -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <style>
+    /* Custom Scrollbar Styles */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.8); }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #0284c7; }
+
+    /* Canvas CAD Grid Background */
+    .pattern-canvas-container {
+      background-size: 10px 10px, 10px 10px, 50px 50px, 50px 50px;
+      background-position: -1px -1px, -1px -1px, -1px -1px, -1px -1px;
+    }
+    .grid-pattern-dark {
+      background-image: 
+        linear-gradient(to right, rgba(51, 65, 85, 0.2) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(51, 65, 85, 0.2) 1px, transparent 1px),
+        linear-gradient(to right, rgba(51, 65, 85, 0.6) 1.5px, transparent 1.5px),
+        linear-gradient(to bottom, rgba(51, 65, 85, 0.6) 1.5px, transparent 1.5px);
+    }
+
+    /* Interactive Handles Hover */
+    .drag-handle {
+      cursor: ns-resize;
+      transition: r 0.15s ease, fill 0.15s ease;
+    }
+    .drag-handle:hover {
+      r: 9;
+      fill: #fbbf24;
+    }
+
+    /* Print Setup */
+    @media print {
+      body * { visibility: hidden; }
+      #printableArea, #printableArea * { visibility: visible; }
+      #printableArea {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body class="h-full flex flex-col font-sans overflow-hidden select-none bg-slate-950 text-slate-100">
+
+  <!-- Top Navigation Header -->
+  <header class="h-14 bg-slate-900 border-b border-slate-800 flex items-center justify-between px-4 z-30 shrink-0 shadow-lg">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-500 via-indigo-500 to-amber-500 p-0.5 shadow-lg shadow-sky-500/20">
+        <div class="w-full h-full bg-slate-900 rounded-[10px] flex items-center justify-center text-sky-400">
+          <i data-lucide="scissors" class="w-5 h-5"></i>
+        </div>
+      </div>
+      <div>
+        <h1 class="text-sm md:text-base font-extrabold text-slate-100 flex items-center gap-2">
+          کوک کودک <span class="text-[10px] px-2 py-0.5 rounded-full bg-sky-500/10 text-sky-400 border border-sky-500/30">نسخه ۳.۵ حرفه‌ای</span>
+        </h1>
+        <p class="text-[10px] text-slate-400 hidden sm:block">استودیوی تخصصی الگوسازی، تنظیم سایزبندی اختصاصی و چاپ ۱:۱ پوشاک کودکان</p>
+      </div>
+    </div>
+
+    <!-- Navigation Tabs (Desktop View) -->
+    <div class="hidden md:flex items-center bg-slate-950 p-1 rounded-xl border border-slate-800 shadow-inner">
+      <button id="btnTabMeasurements" onclick="switchSidebarTab('measurements')" class="tab-btn px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 transition-all text-white bg-sky-600 shadow-md shadow-sky-600/30">
+        <i data-lucide="ruler" class="w-4 h-4"></i>
+        <span>۱. اندازه‌ها و جدول مرجع</span>
+      </button>
+      <button id="btnTabGenerator" onclick="switchSidebarTab('generator')" class="tab-btn px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 transition-all text-slate-400 hover:text-slate-200">
+        <i data-lucide="wand-2" class="w-4 h-4"></i>
+        <span>۲. استایل و الگوسازی</span>
+      </button>
+      <button id="btnTabImageToPattern" onclick="switchSidebarTab('imagetopattern')" class="tab-btn px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 transition-all text-slate-400 hover:text-slate-200">
+        <i data-lucide="sparkles" class="w-4 h-4 text-amber-400"></i>
+        <span>۳. استخراج از عکس</span>
+      </button>
+      <button id="btnTabExport" onclick="switchSidebarTab('export')" class="tab-btn px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 transition-all text-slate-400 hover:text-slate-200">
+        <i data-lucide="printer" class="w-4 h-4"></i>
+        <span>۴. خروجی و چاپ ۱:۱</span>
+      </button>
+    </div>
+
+    <!-- Header Tools & Actions -->
+    <div class="flex items-center gap-2">
+      <!-- Unit Selector -->
+      <div class="flex items-center bg-slate-800 rounded-lg p-0.5 border border-slate-700 text-xs">
+        <button id="unitCmBtn" onclick="setUnit('cm')" class="px-2.5 py-1 rounded-md text-white bg-sky-600 font-bold shadow-sm transition-all">سانتی‌متر</button>
+        <button id="unitInchBtn" onclick="setUnit('inch')" class="px-2.5 py-1 rounded-md text-slate-400 hover:text-slate-200 font-medium transition-all">اینچ</button>
+      </div>
+
+      <div class="h-5 w-px bg-slate-800 mx-0.5"></div>
+
+      <button onclick="saveProjectToLocal()" title="ذخیره پروژه در مرورگر" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-colors">
+        <i data-lucide="save" class="w-4 h-4"></i>
+      </button>
+      <button onclick="exportProjectJSON()" title="دانلود فایل پروژه (.json)" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-colors">
+        <i data-lucide="download" class="w-4 h-4"></i>
+      </button>
+      <label title="بارگذاری فایل پروژه" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 cursor-pointer transition-colors">
+        <i data-lucide="folder-open" class="w-4 h-4"></i>
+        <input type="file" accept=".json" onchange="importProjectJSON(event)" class="hidden">
+      </label>
+    </div>
+  </header>
+
+  <!-- Main Workspace Layout -->
+  <div class="flex-1 flex flex-col md:flex-row overflow-hidden relative">
+
+    <!-- Mobile View Switcher Header (Visible on small screens) -->
+    <div class="flex md:hidden items-center justify-between p-2 bg-slate-900 border-b border-slate-800 gap-2 shrink-0 z-30">
+      <button id="mobileTabConfig" onclick="switchMobileView('config')" class="flex-1 py-2 px-3 rounded-xl text-xs font-bold bg-sky-600 text-white flex items-center justify-center gap-2 shadow-md">
+        <i data-lucide="sliders" class="w-4 h-4"></i>
+        <span>تنظیمات الگو و سایزبندی</span>
+      </button>
+      <button id="mobileTabCanvas" onclick="switchMobileView('canvas')" class="flex-1 py-2 px-3 rounded-xl text-xs font-bold bg-slate-800 text-slate-300 flex items-center justify-center gap-2 border border-slate-700">
+        <i data-lucide="palette" class="w-4 h-4 text-amber-400"></i>
+        <span>بوم گرافیکی و تن‌پوش</span>
+      </button>
+    </div>
+
+    <!-- Sidebar Control Panel -->
+    <aside id="sidebarPanel" class="w-full md:w-96 bg-slate-900/95 border-l border-slate-800 flex flex-col z-20 overflow-hidden shadow-2xl backdrop-blur-md shrink-0 h-full">
+      
+      <!-- TAB 1: MEASUREMENTS & ANTHROPOMETRY WITH SIZE CHART UPLOADER -->
+      <div id="tabContentMeasurements" class="sidebar-tab flex-1 flex flex-col overflow-hidden">
+        <div class="p-4 border-b border-slate-800 bg-slate-900/90">
+          <h2 class="text-xs font-bold text-slate-100 flex items-center gap-2">
+            <i data-lucide="users" class="w-4 h-4 text-sky-400"></i>
+            جدول اندازه‌گیری و سایزبندی مرجع
+          </h2>
+          <p class="text-[11px] text-slate-400 mt-1">سایزهای پیش‌فرض را انتخاب کنید، یا تصویر جدول سایزبندی خود را آپلود نمایید.</p>
+          
+          <div class="mt-3 flex gap-2">
+            <div class="flex-1">
+              <label class="block text-[11px] font-semibold text-slate-300 mb-1">انتخاب سایز پایه:</label>
+              <select id="sizePresetSelect" onchange="applyStandardPreset(this.value)" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-sky-500">
+                <option value="0-3m">نوزاد (۰ تا ۳ ماه - قد ۶۰)</option>
+                <option value="3-6m">نوزاد (۳ تا ۶ ماه - قد ۶۸)</option>
+                <option value="1y">۱ ساله (قد ۸۰)</option>
+                <option value="2y">۲ ساله (قد ۹۲)</option>
+                <option value="4y" selected>۴ ساله (قد ۱۰۴ - پیش‌فرض)</option>
+                <option value="6y">۶ ساله (قد ۱۱۶)</option>
+                <option value="8y">۸ ساله (قد ۱۲۸)</option>
+                <option value="10y">۱۰ ساله (قد ۱۴۰)</option>
+                <option value="12y">۱۲ ساله (قد ۱۵۲)</option>
+                <option value="14y">۱۴ ساله (قد ۱۶۴)</option>
+              </select>
+            </div>
+            <div class="flex items-end">
+              <button onclick="promptSaveCustomPreset()" title="ذخیره اندازه‌های جاری به عنوان سایز جدید" class="px-3 py-2 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all">
+                <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>
+                ثبت سایز
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex-1 overflow-y-auto p-4 space-y-4">
+          
+          <!-- Reference Size Chart Image Uploader Widget -->
+          <div class="bg-slate-800/40 border border-slate-700/80 rounded-xl p-3 space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold text-sky-400 flex items-center gap-1.5">
+                <i data-lucide="file-image" class="w-4 h-4 text-sky-400"></i>
+                تصویر جدول سایزبندی مرجع شما
+              </span>
+              <label class="cursor-pointer bg-sky-600/20 hover:bg-sky-600/30 border border-sky-500/40 text-sky-300 px-2.5 py-1 rounded-md text-[11px] font-semibold flex items-center gap-1 transition-all">
+                <i data-lucide="upload" class="w-3 h-3"></i>
+                آپلود عکس جدول
+                <input type="file" accept="image/*" onchange="handleSizeChartImageUpload(event)" class="hidden">
+              </label>
+            </div>
+
+            <!-- Preview Container for Size Chart Image -->
+            <div id="sizeChartPreviewContainer" class="hidden relative rounded-lg overflow-hidden border border-slate-700/80 bg-slate-950 mt-2">
+              <img id="sizeChartImg" class="w-full max-h-48 object-contain bg-black/60 cursor-zoom-in" onclick="openSizeChartModal()" alt="جدول سایزبندی">
+              <div class="absolute bottom-1 right-1 left-1 flex justify-between items-center bg-slate-900/80 backdrop-blur-md px-2 py-1 rounded text-[10px] text-slate-300">
+                <span>برای بزرگ‌نمایی کلیک کنید</span>
+                <button onclick="removeSizeChartImage(event)" class="text-rose-400 hover:text-rose-300">حذف عکس</button>
+              </div>
+            </div>
+            
+            <p id="sizeChartHelpText" class="text-[10px] text-slate-400">می‌توانید عکس جدول سایزبندی متد یا برند خود را آپلود کرده و اندازه‌ها را مستقیم در فرم زیر وارد نمایید.</p>
+          </div>
+
+          <div class="text-xs font-bold text-sky-400 flex items-center justify-between border-b border-slate-800 pb-1">
+            <span>مقادیر دقیق اندازه‌ها</span>
+            <span class="text-[10px] text-slate-400 font-mono" id="unitLabelDisplay">(سانتی‌متر)</span>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2.5">
+            <div>
+              <label class="block text-[10px] font-medium text-slate-300 mb-1">دور سینه (Chest)</label>
+              <input type="number" step="0.5" id="m_chest" oninput="updateMeasurement('chest', this.value)" class="w-full bg-slate-800 border border-slate-700 rounded-md px-2.5 py-1.5 text-xs text-slate-100 focus:border-sky-500">
+            </div>
+            <div>
+              <label class="block text-[10px] font-medium text-slate-300 mb-1">دور کمر (Waist)</label>
+              <input type="number" step="0.5" id="m_waist" oninput="updateMeasurement('waist', this.value)" class="w-full bg-slate-800 border border-slate-700 rounded-md px-2.5 py-1.5 text-xs text-slate-100 focus:border-sky-500">
+            </div>
+            <div>
+              <label class="block text-[10px] font-medium text-slate-300 mb-1">دور باسن (Hip)</label>
+              <input type="number" step="0.5" id="m_hip" oninput="updateMeasurement('hip', this.value)" class="w-full bg-slate-800 border border-slate-700 rounded-md px-2.5 py-1.5 text-xs text-slate-100 focus:border-sky-500">
+            </div>
+            <div>
+              <label class="block text-[10px] font-medium text-slate-300 mb-1">قد بالاتنه پشت (Back L)</label>
+              <input type="number" step="0.5" id="m_backLength" oninput="updateMeasurement('backLength', this.value)" class="w-full bg-slate-800 border border-slate-700 rounded-md px-2.5 py-1.5 text-xs text-slate-100 focus:border-sky-500">
+            </div>
+            <div>
+              <label class="block text-[10px] font-medium text-slate-300 mb-1">عرض شانه (Shoulder)</label>
+              <input type="number" step="0.5" id="m_shoulder" oninput="updateMeasurement('shoulder', this.value)" class="w-full bg-slate-800 border border-slate-700 rounded-md px-2.5 py-1.5 text-xs text-slate-100 focus:border-sky-500">
+            </div>
+            <div>
+              <label class="block text-[10px] font-medium text-slate-300 mb-1">دور یقه (Neck)</label>
+              <input type="number" step="0.5" id="m_neck" oninput="updateMeasurement('neck', this.value)" class="w-full bg-slate-800 border border-slate-700 rounded-md px-2.5 py-1.5 text-xs text-slate-100 focus:border-sky-500">
+            </div>
+            <div>
+              <label class="block text-[10px] font-medium text-slate-300 mb-1">قد آستین (Sleeve L)</label>
+              <input type="number" step="0.5" id="m_sleeve" oninput="updateMeasurement('sleeve', this.value)" class="w-full bg-slate-800 border border-slate-700 rounded-md px-2.5 py-1.5 text-xs text-slate-100 focus:border-sky-500">
+            </div>
+            <div>
+              <label class="block text-[10px] font-medium text-slate-300 mb-1">دور مچ (Wrist)</label>
+              <input type="number" step="0.5" id="m_wrist" oninput="updateMeasurement('wrist', this.value)" class="w-full bg-slate-800 border border-slate-700 rounded-md px-2.5 py-1.5 text-xs text-slate-100 focus:border-sky-500">
+            </div>
+            <div>
+              <label class="block text-[10px] font-medium text-slate-300 mb-1">قد شلوار (Pants L)</label>
+              <input type="number" step="0.5" id="m_pantsLength" oninput="updateMeasurement('pantsLength', this.value)" class="w-full bg-slate-800 border border-slate-700 rounded-md px-2.5 py-1.5 text-xs text-slate-100 focus:border-sky-500">
+            </div>
+            <div>
+              <label class="block text-[10px] font-medium text-slate-300 mb-1">بلندی فاق (Crotch D)</label>
+              <input type="number" step="0.5" id="m_crotch" oninput="updateMeasurement('crotch', this.value)" class="w-full bg-slate-800 border border-slate-700 rounded-md px-2.5 py-1.5 text-xs text-slate-100 focus:border-sky-500">
+            </div>
+          </div>
+
+          <div class="bg-slate-800/40 p-3 rounded-xl border border-slate-700/60 mt-3">
+            <div class="flex justify-between items-center mb-1">
+              <label class="text-[11px] font-bold text-amber-400">میزان آزادی دوخت (Ease):</label>
+              <span id="txtEaseValue" class="text-xs font-mono text-amber-300">2.0 cm</span>
+            </div>
+            <input type="range" min="0" max="6" step="0.5" value="2.0" id="rngEase" oninput="updateMeasurement('ease', this.value)" class="w-full accent-amber-500">
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 2: MODEL STYLING & PATTERN GENERATOR -->
+      <div id="tabContentGenerator" class="sidebar-tab flex-1 flex flex-col overflow-hidden hidden">
+        <div class="p-4 border-b border-slate-800 bg-slate-900/90">
+          <div class="flex items-center justify-between">
+            <h2 class="text-xs font-bold text-slate-100 flex items-center gap-2">
+              <i data-lucide="wand-2" class="w-4 h-4 text-sky-400"></i>
+              استودیوی تعاملی مدل‌سازی پوشاک
+            </h2>
+            <span class="text-[9px] bg-sky-500/20 text-sky-300 border border-sky-500/30 px-2 py-0.5 rounded-full font-mono">طراحی زنده</span>
+          </div>
+          <p class="text-[11px] text-slate-400 mt-1">مدل یقه، آستین و لباس را به‌صورت دیداری برگزینید و انحناها را کالیبره کنید.</p>
+        </div>
+
+        <div class="flex-1 overflow-y-auto p-4 space-y-4">
+          
+          <!-- Visual Collar Selector -->
+          <div class="space-y-2">
+            <label class="block text-xs font-bold text-sky-400 flex items-center gap-1.5">
+              <i data-lucide="smile" class="w-3.5 h-3.5"></i>
+              ۱. مدل تصویری یقه (Neckline Style):
+            </label>
+            <div class="grid grid-cols-2 gap-2">
+              <button onclick="updateStyleOption('neckType', 'round')" id="neckCard_round" class="neck-card p-2 rounded-xl bg-slate-800 border-2 border-sky-500 flex flex-col items-center justify-center gap-1 hover:bg-slate-700 transition-all text-center">
+                <svg class="w-7 h-7 text-sky-400" viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M10 10 C 10 25, 30 25, 30 10" />
+                </svg>
+                <span class="text-[10px] font-bold text-slate-100">گرد استاندارد</span>
+              </button>
+
+              <button onclick="updateStyleOption('neckType', 'vneck')" id="neckCard_vneck" class="neck-card p-2 rounded-xl bg-slate-800/60 border border-slate-700 flex flex-col items-center justify-center gap-1 hover:bg-slate-700 transition-all text-center">
+                <svg class="w-7 h-7 text-slate-400" viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M10 10 L 20 28 L 30 10" />
+                </svg>
+                <span class="text-[10px] font-bold text-slate-300">یقه هفت (V-Neck)</span>
+              </button>
+
+              <button onclick="updateStyleOption('neckType', 'collar')" id="neckCard_collar" class="neck-card p-2 rounded-xl bg-slate-800/60 border border-slate-700 flex flex-col items-center justify-center gap-1 hover:bg-slate-700 transition-all text-center">
+                <svg class="w-7 h-7 text-slate-400" viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M10 10 Q 15 22 20 18 Q 25 22 30 10" />
+                  <path d="M10 10 C 15 2 25 2 30 10" />
+                </svg>
+                <span class="text-[10px] font-bold text-slate-300">یقه ببه (Peter Pan)</span>
+              </button>
+
+              <button onclick="updateStyleOption('neckType', 'square')" id="neckCard_square" class="neck-card p-2 rounded-xl bg-slate-800/60 border border-slate-700 flex flex-col items-center justify-center gap-1 hover:bg-slate-700 transition-all text-center">
+                <svg class="w-7 h-7 text-slate-400" viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 10 L 12 22 L 28 22 L 28 10" />
+                </svg>
+                <span class="text-[10px] font-bold text-slate-300">یقه خشتی (Square)</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Visual Sleeve Selector -->
+          <div class="space-y-2">
+            <label class="block text-xs font-bold text-sky-400 flex items-center gap-1.5">
+              <i data-lucide="scissors" class="w-3.5 h-3.5"></i>
+              ۲. مدل تصویری آستین (Sleeve Style):
+            </label>
+            <div class="grid grid-cols-3 gap-2">
+              <button onclick="updateStyleOption('sleeveType', 'standard')" id="sleeveCard_standard" class="sleeve-card p-2 rounded-xl bg-slate-800 border-2 border-sky-500 flex flex-col items-center justify-center gap-1 hover:bg-slate-700 transition-all text-center">
+                <svg class="w-6 h-6 text-sky-400" viewBox="0 0 30 40" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M5 10 C 10 0 20 0 25 10 L 22 35 L 8 35 Z" />
+                </svg>
+                <span class="text-[10px] font-bold text-slate-100">ساده</span>
+              </button>
+
+              <button onclick="updateStyleOption('sleeveType', 'puff')" id="sleeveCard_puff" class="sleeve-card p-2 rounded-xl bg-slate-800/60 border border-slate-700 flex flex-col items-center justify-center gap-1 hover:bg-slate-700 transition-all text-center">
+                <svg class="w-6 h-6 text-slate-400" viewBox="0 0 30 40" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M5 12 C -2 0 32 0 25 12 L 20 35 L 10 35 Z" />
+                </svg>
+                <span class="text-[10px] font-bold text-slate-300">پف‌دار</span>
+              </button>
+
+              <button onclick="updateStyleOption('sleeveType', 'short')" id="sleeveCard_short" class="sleeve-card p-2 rounded-xl bg-slate-800/60 border border-slate-700 flex flex-col items-center justify-center gap-1 hover:bg-slate-700 transition-all text-center">
+                <svg class="w-6 h-6 text-slate-400" viewBox="0 0 30 40" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M5 10 C 10 0 20 0 25 10 L 23 20 L 7 20 Z" />
+                </svg>
+                <span class="text-[10px] font-bold text-slate-300">کوتاه</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Dynamic Sliders for Real-time Calibration -->
+          <div class="bg-slate-800/60 p-3 rounded-xl border border-slate-700/80 space-y-3">
+            <span class="text-xs font-bold text-amber-400 flex items-center gap-1.5">
+              <i data-lucide="sliders" class="w-3.5 h-3.5"></i>
+              تنظیمات گرافیکی و انحناها:
+            </span>
+
+            <div>
+              <div class="flex justify-between text-[11px] text-slate-300 mb-1">
+                <span>عمق و گودی یقه (Neck Depth):</span>
+                <span id="txtNeckDepthVal" class="font-mono text-sky-400 font-bold">1.0 cm</span>
+              </div>
+              <input type="range" min="0" max="8" step="0.5" value="1.0" id="rngNeckDepth" oninput="updateStyleOption('neckDepthOffset', this.value)" class="w-full accent-sky-500">
+            </div>
+
+            <div>
+              <div class="flex justify-between text-[11px] text-slate-300 mb-1">
+                <span>ضریب چین/پف آستین (Puff Scale):</span>
+                <span id="txtPuffVal" class="font-mono text-sky-400 font-bold">1.0 x</span>
+              </div>
+              <input type="range" min="1.0" max="1.8" step="0.05" value="1.0" id="rngPuffScale" oninput="updateStyleOption('puffScale', this.value)" class="w-full accent-amber-500">
+            </div>
+          </div>
+
+          <!-- Pattern Piece Checkboxes -->
+          <div class="space-y-2">
+            <span class="text-xs font-bold text-slate-300 block">قطعات فعال جهت ترسیم:</span>
+            
+            <div class="grid grid-cols-2 gap-2">
+              <label class="flex items-center justify-between p-2 rounded-xl bg-slate-800/80 border border-slate-700 cursor-pointer hover:border-sky-500">
+                <div class="flex items-center gap-2">
+                  <input type="checkbox" id="chkBodice" checked onchange="togglePatternPiece('bodice', this.checked)" class="w-4 h-4 text-sky-600 rounded bg-slate-700">
+                  <span class="text-xs font-bold text-slate-200">بالاتنه</span>
+                </div>
+              </label>
+
+              <label class="flex items-center justify-between p-2 rounded-xl bg-slate-800/80 border border-slate-700 cursor-pointer hover:border-sky-500">
+                <div class="flex items-center gap-2">
+                  <input type="checkbox" id="chkSleeve" checked onchange="togglePatternPiece('sleeve', this.checked)" class="w-4 h-4 text-sky-600 rounded bg-slate-700">
+                  <span class="text-xs font-bold text-slate-200">آستین</span>
+                </div>
+              </label>
+
+              <label class="flex items-center justify-between p-2 rounded-xl bg-slate-800/80 border border-slate-700 cursor-pointer hover:border-sky-500">
+                <div class="flex items-center gap-2">
+                  <input type="checkbox" id="chkPants" onchange="togglePatternPiece('pants', this.checked)" class="w-4 h-4 text-sky-600 rounded bg-slate-700">
+                  <span class="text-xs font-bold text-slate-200">شلوار</span>
+                </div>
+              </label>
+
+              <label class="flex items-center justify-between p-2 rounded-xl bg-slate-800/80 border border-slate-700 cursor-pointer hover:border-sky-500">
+                <div class="flex items-center gap-2">
+                  <input type="checkbox" id="chkSkirt" onchange="togglePatternPiece('skirt', this.checked)" class="w-4 h-4 text-sky-600 rounded bg-slate-700">
+                  <span class="text-xs font-bold text-slate-200">دامن کلوش</span>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <!-- Seam Allowance Settings -->
+          <div class="bg-slate-800/50 p-3 rounded-xl border border-slate-700 space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold text-amber-400 flex items-center gap-1.5">
+                <i data-lucide="scissors" class="w-3.5 h-3.5"></i>
+                حق دوخت (Seam Allowance)
+              </span>
+              <input type="checkbox" id="chkSeamAllowance" checked onchange="toggleSeamAllowance(this.checked)" class="w-4 h-4 text-sky-600 rounded">
+            </div>
+
+            <div id="seamWidthContainer" class="flex items-center justify-between pt-1">
+              <label class="text-[11px] text-slate-300">عرض زاپاس دوخت:</label>
+              <select id="seamWidthSelect" onchange="updateSeamWidth(this.value)" class="bg-slate-900 border border-slate-700 rounded px-2.5 py-1 text-xs text-slate-100">
+                <option value="0.7">0.7 cm</option>
+                <option value="1.0">1.0 cm</option>
+                <option value="1.5" selected>1.5 cm</option>
+                <option value="2.0">2.0 cm</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 3: IMAGE TO PATTERN CONVERTER -->
+      <div id="tabContentImageToPattern" class="sidebar-tab flex-1 flex flex-col overflow-hidden hidden">
+        <div class="p-4 border-b border-slate-800 bg-slate-900/90">
+          <h2 class="text-xs font-bold text-slate-100 flex items-center gap-2">
+            <i data-lucide="sparkles" class="w-4 h-4 text-amber-400"></i>
+            استخراج هوشمند کانتور الگو از تصویر لباس
+          </h2>
+          <p class="text-[11px] text-slate-400 mt-1">تصویر مد نظر خود را وارد کنید تا انحنای لبه‌ها استخراج و روی الگو اعمال شود.</p>
+        </div>
+
+        <div class="flex-1 overflow-y-auto p-4 space-y-4">
+          <div id="imageDropzone" onclick="document.getElementById('garmentImageInput').click()" class="border-2 border-dashed border-slate-700 hover:border-amber-400/80 rounded-2xl p-4 text-center cursor-pointer transition-all bg-slate-800/30 hover:bg-slate-800/60 group">
+            <input type="file" id="garmentImageInput" accept="image/*" onchange="handleGarmentImageUpload(event)" class="hidden">
+            <div class="w-12 h-12 mx-auto rounded-full bg-slate-800 group-hover:bg-amber-400/10 flex items-center justify-center text-slate-400 group-hover:text-amber-400 transition-colors mb-2">
+              <i data-lucide="image-plus" class="w-6 h-6"></i>
+            </div>
+            <p class="text-xs font-semibold text-slate-200">انتخاب یا رهاسازی عکس لباس کودک</p>
+            <p class="text-[10px] text-slate-400 mt-1">پشتیبانی فرمت‌های PNG ، JPG و WEBP</p>
+          </div>
+
+          <div id="imageAnalysisContainer" class="hidden space-y-3">
+            <div class="relative rounded-xl overflow-hidden border border-slate-700 bg-black/40 max-h-48 flex items-center justify-center">
+              <img id="uploadedImagePreview" class="max-h-48 object-contain w-full" alt="Garment Preview">
+              <canvas id="contourCanvas" class="absolute inset-0 w-full h-full pointer-events-none"></canvas>
+            </div>
+
+            <button onclick="extractContourAndFit()" class="w-full py-2.5 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-slate-950 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-lg shadow-amber-500/20">
+              <i data-lucide="wand-2" class="w-4 h-4"></i>
+              استخراج لبه‌ها و کالیبره‌سازی
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 4: TILED PDF EXPORT ENGINE -->
+      <div id="tabContentExport" class="sidebar-tab flex-1 flex flex-col overflow-hidden hidden">
+        <div class="p-4 border-b border-slate-800 bg-slate-900/90">
+          <h2 class="text-xs font-bold text-slate-100 flex items-center gap-2">
+            <i data-lucide="printer" class="w-4 h-4 text-sky-400"></i>
+            تنظیمات چاپ ۱:۱ واقعی و خروجی چندصفحه‌ای
+          </h2>
+          <p class="text-[11px] text-slate-400 mt-1">خروجی کاشی‌کاری شده A4 با مقیاس ۱۰۰٪ بدون تغییر سایز پرینتر.</p>
+        </div>
+
+        <div class="flex-1 overflow-y-auto p-4 space-y-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">اندازه کاغذ پرینتر:</label>
+            <select id="paperSizeSelect" onchange="updatePrintLayout()" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100">
+              <option value="a4">کاغذ استاندارد A4 (210 × 297 mm)</option>
+              <option value="letter">کاغذ Letter (216 × 279 mm)</option>
+              <option value="plotter">پلاتر عریض ۹۰ سانتی‌متری</option>
+            </select>
+          </div>
+
+          <div class="bg-slate-800/50 p-3 rounded-xl border border-slate-700/80 space-y-2">
+            <div class="flex justify-between items-center text-xs text-slate-300">
+              <span>تعداد کل صفحات:</span>
+              <span id="txtPageCount" class="font-bold text-sky-400">۴ صفحه A4</span>
+            </div>
+            <div class="flex justify-between items-center text-xs text-slate-300">
+              <span>علائم انطباق و پین‌ها:</span>
+              <span class="text-emerald-400 font-medium">فعال</span>
+            </div>
+            <div class="flex justify-between items-center text-xs text-slate-300">
+              <span>مربع تست کالیبراسیون ۵×۵ cm:</span>
+              <span class="text-emerald-400 font-medium">صفحه اول</span>
+            </div>
+          </div>
+
+          <label class="flex items-center gap-2 text-xs text-slate-200 cursor-pointer p-2 bg-slate-800/40 rounded-lg">
+            <input type="checkbox" id="chkShowTiledPages" checked onchange="toggleTiledPageGrid(this.checked)" class="rounded border-slate-600 text-sky-600">
+            نمایش تور مرزی صفحات روی بوم طراحی
+          </label>
+
+          <div class="space-y-2 pt-2">
+            <button onclick="downloadTiledPDF()" class="w-full py-2.5 bg-sky-600 hover:bg-sky-500 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-2 shadow-lg shadow-sky-600/20 transition-all">
+              <i data-lucide="file-down" class="w-4 h-4"></i>
+              دانلود فایل PDF کاشی‌کاری شده ۱:۱
+            </button>
+            <button onclick="downloadPatternSVG()" class="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold rounded-xl text-xs flex items-center justify-center gap-2 border border-slate-700 transition-all">
+              <i data-lucide="file-code" class="w-4 h-4 text-emerald-400"></i>
+              دانلود فایل برداری SVG (پلاتر / برش لیزر)
+            </button>
+            <button onclick="triggerDirectPrint()" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-2 transition-all">
+              <i data-lucide="printer" class="w-4 h-4"></i>
+              ارسال مستقیم به پرینتر
+            </button>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Center Interactive SVG Canvas Workspace -->
+    <main id="mainCanvasContainer" class="flex-1 flex flex-col relative bg-slate-950 overflow-hidden h-full hidden md:flex">
+      
+      <!-- Top Canvas Controls Toolbar -->
+      <div class="absolute top-4 right-4 left-4 z-10 flex items-center justify-between pointer-events-none gap-2">
+        
+        <div class="flex items-center gap-2 pointer-events-auto bg-slate-900/90 border border-slate-800 p-1.5 rounded-xl shadow-xl backdrop-blur-md">
+          <button onclick="zoomCanvas(1.15)" title="بزرگ‌نمایی" class="p-2 rounded-lg hover:bg-slate-800 text-slate-300 hover:text-white transition-colors">
+            <i data-lucide="zoom-in" class="w-4 h-4"></i>
+          </button>
+          <button onclick="zoomCanvas(0.85)" title="کوچک‌نمایی" class="p-2 rounded-lg hover:bg-slate-800 text-slate-300 hover:text-white transition-colors">
+            <i data-lucide="zoom-out" class="w-4 h-4"></i>
+          </button>
+          <button onclick="resetCanvasView()" title="بازنشانی نمای بوم" class="p-2 rounded-lg hover:bg-slate-800 text-slate-300 hover:text-white transition-colors">
+            <i data-lucide="maximize-2" class="w-4 h-4"></i>
+          </button>
+          <div class="h-4 w-px bg-slate-800"></div>
+          <span id="zoomPercentage" class="text-xs font-mono text-slate-400 px-2">100%</span>
+        </div>
+
+        <!-- Garment Mannequin Visualizer Toggle Button -->
+        <button onclick="toggleMannequinView()" id="btnMannequinToggle" class="pointer-events-auto px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-600 hover:to-orange-600 text-slate-950 font-extrabold text-xs flex items-center gap-2 shadow-lg shadow-amber-500/20 transition-all">
+          <i data-lucide="user-check" class="w-4 h-4"></i>
+          <span id="txtMannequinBtn">پیش‌نمایش زنده مدل روی تن‌پوش</span>
+        </button>
+      </div>
+
+      <!-- Main Interactive SVG Viewport -->
+      <div id="canvasViewport" class="flex-1 w-full h-full cursor-grab active:cursor-grabbing overflow-hidden relative pattern-canvas-container grid-pattern-dark">
+        
+        <svg id="patternSvg" class="w-full h-full absolute inset-0" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <g id="registrationMark">
+              <circle cx="0" cy="0" r="8" stroke="#38bdf8" stroke-width="1" fill="none" />
+              <line x1="-12" y1="0" x2="12" y2="0" stroke="#38bdf8" stroke-width="1" />
+              <line x1="0" y1="-12" x2="0" y2="12" stroke="#38bdf8" stroke-width="1" />
+            </g>
+          </defs>
+
+          <!-- SVG Transformation Group (Zoom & Pan) -->
+          <g id="canvasTransformGroup" transform="translate(100, 80) scale(1)">
+            <g id="tiledPagesGroup" opacity="0.85"></g>
+            <g id="mannequinGroup" class="hidden"></g>
+            <g id="patternsGroup"></g>
+            <g id="annotationsGroup"></g>
+            <g id="handlesGroup"></g>
+          </g>
+        </svg>
+      </div>
+
+      <!-- Canvas Footer Status Bar -->
+      <footer class="h-8 bg-slate-900 border-t border-slate-800 px-4 flex items-center justify-between text-[11px] text-slate-400 shrink-0 z-10">
+        <div class="flex items-center gap-4">
+          <span>مختصات: <span id="mouseCoords" class="font-mono text-slate-200">X: 0 , Y: 0</span></span>
+          <span class="hidden md:inline">الگوهای فعال: <span id="activePatternName" class="text-sky-400 font-medium">بالاتنه، آستین</span></span>
+        </div>
+        <div class="flex items-center gap-3">
+          <span class="flex items-center gap-1">
+            <span class="w-2.5 h-2.5 rounded-full bg-sky-400"></span>
+            خطوط اصلی الگو
+          </span>
+          <span class="flex items-center gap-1">
+            <span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span>
+            زاپاس دوخت
+          </span>
+        </div>
+      </footer>
+    </main>
+  </div>
+
+  <!-- Modal View for Zoomed Size Chart Image -->
+  <div id="sizeChartModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-4xl max-h-[90vh] flex flex-col overflow-hidden shadow-2xl">
+      <div class="p-3 border-b border-slate-800 flex justify-between items-center bg-slate-900">
+        <h3 class="text-xs font-bold text-slate-100 flex items-center gap-2">
+          <i data-lucide="file-image" class="w-4 h-4 text-sky-400"></i>
+          تصویر مرجع جدول سایزبندی
+        </h3>
+        <button onclick="closeSizeChartModal()" class="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <div class="p-2 overflow-auto flex-1 flex justify-center bg-slate-950">
+        <img id="modalSizeChartImg" class="max-w-full h-auto object-contain" alt="جدول سایزبندی مرجع">
+      </div>
+    </div>
+  </div>
+
+  <div id="printableArea" class="hidden"></div>
+
+  <!-- APPLICATION JAVASCRIPT ENGINE -->
+  <script>
+    // State Architecture
+    const state = {
+      unit: 'cm',
+      zoom: 1.0,
+      pan: { x: 80, y: 60 },
+      isPanning: false,
+      startPan: { x: 0, y: 0 },
+      showMannequin: false,
+      activeMobileView: 'config',
+      sizeChartImgData: null,
+      
+      measurements: {
+        chest: 56,
+        waist: 54,
+        hip: 58,
+        backLength: 24,
+        shoulder: 25,
+        neck: 26,
+        sleeve: 34,
+        wrist: 15,
+        pantsLength: 58,
+        crotch: 18,
+        ease: 2.0
+      },
+
+      patterns: {
+        bodice: true,
+        sleeve: true,
+        pants: false,
+        skirt: false
+      },
+
+      styleOptions: {
+        neckType: 'round',    // 'round', 'vneck', 'collar', 'square'
+        neckDepthOffset: 1.0,
+        sleeveType: 'standard', // 'standard', 'puff', 'short'
+        puffScale: 1.0
+      },
+
+      seamAllowance: {
+        enabled: true,
+        widthCm: 1.5
+      },
+
+      display: {
+        tiledPages: true
+      },
+
+      paper: {
+        type: 'a4',
+        widthMm: 210,
+        heightMm: 297
+      },
+
+      dragHandle: {
+        active: false,
+        targetKey: null,
+        startMousePos: { x: 0, y: 0 },
+        initialValue: 0
+      },
+
+      imagePattern: {
+        loaded: false,
+        element: null
+      }
+    };
+
+    // Standard Anthropometric Presets for Kids (cm)
+    const SIZE_PRESETS = {
+      '0-3m':  { chest: 44, waist: 44, hip: 46, backLength: 16, shoulder: 18, neck: 20, sleeve: 20, wrist: 11, pantsLength: 32, crotch: 12 },
+      '3-6m':  { chest: 46, waist: 46, hip: 48, backLength: 18, shoulder: 19, neck: 21, sleeve: 22, wrist: 12, pantsLength: 36, crotch: 13 },
+      '1y':    { chest: 50, waist: 49, hip: 51, backLength: 20, shoulder: 21, neck: 23, sleeve: 27, wrist: 13, pantsLength: 44, crotch: 15 },
+      '2y':    { chest: 53, waist: 51, hip: 54, backLength: 22, shoulder: 23, neck: 24, sleeve: 30, wrist: 14, pantsLength: 50, crotch: 16.5 },
+      '4y':    { chest: 56, waist: 54, hip: 58, backLength: 24, shoulder: 25, neck: 26, sleeve: 34, wrist: 15, pantsLength: 58, crotch: 18 },
+      '6y':    { chest: 60, waist: 56, hip: 63, backLength: 27, shoulder: 27, neck: 27.5, sleeve: 39, wrist: 16, pantsLength: 67, crotch: 19.5 },
+      '8y':    { chest: 64, waist: 58, hip: 68, backLength: 30, shoulder: 29, neck: 29, sleeve: 44, wrist: 16.5, pantsLength: 76, crotch: 21 },
+      '10y':   { chest: 70, waist: 61, hip: 74, backLength: 33, shoulder: 31, neck: 30.5, sleeve: 49, wrist: 17, pantsLength: 85, crotch: 22.5 },
+      '12y':   { chest: 76, waist: 64, hip: 80, backLength: 36, shoulder: 33, neck: 32, sleeve: 54, wrist: 18, pantsLength: 93, crotch: 24 },
+      '14y':   { chest: 82, waist: 67, hip: 86, backLength: 39, shoulder: 35, neck: 33.5, sleeve: 58, wrist: 19, pantsLength: 100, crotch: 25.5 }
+    };
+
+    window.addEventListener('DOMContentLoaded', () => {
+      lucide.createIcons();
+      setupCanvasInteractions();
+      populateMeasurementInputs();
+      renderPatterns();
+      updatePrintLayout();
+      loadSavedCustomPresets();
+    });
+
+    // Handle Image Upload for Size Chart Reference
+    function handleSizeChartImageUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        state.sizeChartImgData = e.target.result;
+        displaySizeChartImage(e.target.result);
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function displaySizeChartImage(src) {
+      const preview = document.getElementById('sizeChartImg');
+      const modalImg = document.getElementById('modalSizeChartImg');
+      const container = document.getElementById('sizeChartPreviewContainer');
+      const helpText = document.getElementById('sizeChartHelpText');
+
+      preview.src = src;
+      modalImg.src = src;
+      container.classList.remove('hidden');
+      helpText.classList.add('hidden');
+    }
+
+    function removeSizeChartImage(e) {
+      if (e) e.stopPropagation();
+      state.sizeChartImgData = null;
+      document.getElementById('sizeChartPreviewContainer').classList.add('hidden');
+      document.getElementById('sizeChartHelpText').classList.remove('hidden');
+    }
+
+    function openSizeChartModal() {
+      if (state.sizeChartImgData) {
+        document.getElementById('sizeChartModal').classList.remove('hidden');
+      }
+    }
+
+    function closeSizeChartModal() {
+      document.getElementById('sizeChartModal').classList.add('hidden');
+    }
+
+    // Save Current Measurements as Custom Preset
+    function promptSaveCustomPreset() {
+      const presetName = prompt("لطفاً نام سایز جدید یا جدول اختصاصی را وارد کنید (مثلاً: سایز سفارشی - کد ۱۰۲):");
+      if (!presetName || !presetName.trim()) return;
+
+      const key = 'custom_' + Date.now();
+      const newPreset = { ...state.measurements };
+      delete newPreset.ease;
+
+      SIZE_PRESETS[key] = newPreset;
+
+      const select = document.getElementById('sizePresetSelect');
+      const opt = document.createElement('option');
+      opt.value = key;
+      opt.textContent = `⭐ ${presetName.trim()}`;
+      opt.selected = true;
+      select.appendChild(opt);
+
+      saveCustomPresetsToStorage();
+      alert(`سایز جدید "${presetName.trim()}" با موفقیت ذخیره گردید و به لیست اضافه شد.`);
+    }
+
+    function saveCustomPresetsToStorage() {
+      const customs = {};
+      for (const [k, v] of Object.entries(SIZE_PRESETS)) {
+        if (k.startsWith('custom_')) {
+          customs[k] = v;
+        }
+      }
+      localStorage.setItem('kids_custom_presets', JSON.stringify(customs));
+    }
+
+    function loadSavedCustomPresets() {
+      try {
+        const stored = localStorage.getItem('kids_custom_presets');
+        if (stored) {
+          const customs = JSON.parse(stored);
+          const select = document.getElementById('sizePresetSelect');
+          for (const [k, v] of Object.entries(customs)) {
+            SIZE_PRESETS[k] = v;
+            const opt = document.createElement('option');
+            opt.value = k;
+            opt.textContent = `⭐ سایز ذخیره‌شده (${k.slice(-4)})`;
+            select.appendChild(opt);
+          }
+        }
+      } catch (e) {
+        console.warn("Error loading stored presets:", e);
+      }
+    }
+
+    // Mobile View Navigation
+    function switchMobileView(view) {
+      state.activeMobileView = view;
+      const sidebar = document.getElementById('sidebarPanel');
+      const canvas = document.getElementById('mainCanvasContainer');
+      const btnConfig = document.getElementById('mobileTabConfig');
+      const btnCanvas = document.getElementById('mobileTabCanvas');
+
+      if (view === 'config') {
+        sidebar.classList.remove('hidden');
+        canvas.classList.add('hidden');
+        btnConfig.className = "flex-1 py-2 px-3 rounded-xl text-xs font-bold bg-sky-600 text-white flex items-center justify-center gap-2 shadow-md";
+        btnCanvas.className = "flex-1 py-2 px-3 rounded-xl text-xs font-bold bg-slate-800 text-slate-300 flex items-center justify-center gap-2 border border-slate-700";
+      } else {
+        sidebar.classList.add('hidden');
+        canvas.classList.remove('hidden');
+        canvas.classList.add('flex');
+        btnCanvas.className = "flex-1 py-2 px-3 rounded-xl text-xs font-bold bg-sky-600 text-white flex items-center justify-center gap-2 shadow-md";
+        btnConfig.className = "flex-1 py-2 px-3 rounded-xl text-xs font-bold bg-slate-800 text-slate-300 flex items-center justify-center gap-2 border border-slate-700";
+      }
+    }
+
+    // Mannequin Toggle & Live Render Logic
+    function toggleMannequinView() {
+      state.showMannequin = !state.showMannequin;
+      const mGroup = document.getElementById('mannequinGroup');
+      const btnTxt = document.getElementById('txtMannequinBtn');
+
+      if (state.showMannequin) {
+        mGroup.classList.remove('hidden');
+        btnTxt.innerText = "بازگشت به نقشه الگوها";
+        renderMannequinModel();
+      } else {
+        mGroup.classList.add('hidden');
+        btnTxt.innerText = "پیش‌نمایش زنده مدل روی تن‌پوش";
+      }
+    }
+
+    function renderMannequinModel() {
+      const mGroup = document.getElementById('mannequinGroup');
+      mGroup.innerHTML = '';
+
+      const cx = 380;
+      const cy = 120;
+      const m = state.measurements;
+
+      // Render Anatomical Child Silhouette
+      const mannequinBody = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      mannequinBody.setAttribute("d", `
+        M ${cx} ${cy - 50}
+        C ${cx - 18} ${cy - 50}, ${cx - 18} ${cy - 20}, ${cx} ${cy - 20}
+        C ${cx + 18} ${cy - 20}, ${cx + 18} ${cy - 50}, ${cx} ${cy - 50}
+        M ${cx - 12} ${cy - 12} L ${cx - 38} ${cy + 15} L ${cx - 45} ${cy + 110} L ${cx - 30} ${cy + 220} L ${cx - 8} ${cy + 220} L ${cx - 12} ${cy + 130} L ${cx} ${cy + 130} L ${cx + 12} ${cy + 130} L ${cx + 8} ${cy + 220} L ${cx + 30} ${cy + 220} L ${cx + 45} ${cy + 110} L ${cx + 38} ${cy + 15} Z
+      `);
+      mannequinBody.setAttribute("fill", "rgba(51, 65, 85, 0.45)");
+      mannequinBody.setAttribute("stroke", "#64748b");
+      mannequinBody.setAttribute("stroke-width", "2");
+      mGroup.appendChild(mannequinBody);
+
+      // Dynamic Clothing Fit Overlay
+      const garment = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      let pathStr = `M ${cx - 38} ${cy + 15} `;
+
+      const nDepth = parseFloat(state.styleOptions.neckDepthOffset || 1.0) * 10;
+      if (state.styleOptions.neckType === 'vneck') {
+        pathStr += `L ${cx} ${cy + 15 + nDepth + 15} L ${cx + 38} ${cy + 15} `;
+      } else if (state.styleOptions.neckType === 'square') {
+        pathStr += `L ${cx - 16} ${cy + 15} L ${cx - 16} ${cy + 15 + nDepth + 10} L ${cx + 16} ${cy + 15 + nDepth + 10} L ${cx + 16} ${cy + 15} L ${cx + 38} ${cy + 15} `;
+      } else {
+        pathStr += `Q ${cx} ${cy + 15 + nDepth + 15}, ${cx + 38} ${cy + 15} `;
+      }
+
+      const puff = parseFloat(state.styleOptions.puffScale || 1.0);
+      const sleeveLen = state.styleOptions.sleeveType === 'short' ? 45 : (m.sleeve * 2.2);
+
+      pathStr += `L ${cx + 45 * puff} ${cy + sleeveLen} L ${cx + 32} ${cy + 55} L ${cx + 35} ${cy + (m.backLength * 3.8)} L ${cx - 35} ${cy + (m.backLength * 3.8)} L ${cx - 32} ${cy + 55} L ${cx - 45 * puff} ${cy + sleeveLen} Z`;
+
+      garment.setAttribute("d", pathStr);
+      garment.setAttribute("fill", "rgba(14, 165, 233, 0.45)");
+      garment.setAttribute("stroke", "#38bdf8");
+      garment.setAttribute("stroke-width", "2.5");
+      mGroup.appendChild(garment);
+    }
+
+    function updateStyleOption(key, val) {
+      state.styleOptions[key] = val;
+
+      if (key === 'neckDepthOffset') {
+        document.getElementById('txtNeckDepthVal').innerText = `${parseFloat(val).toFixed(1)} cm`;
+      }
+      if (key === 'puffScale') {
+        document.getElementById('txtPuffVal').innerText = `${parseFloat(val).toFixed(2)} x`;
+      }
+
+      if (key === 'neckType') {
+        document.querySelectorAll('.neck-card').forEach(c => {
+          c.classList.remove('border-2', 'border-sky-500', 'bg-slate-800');
+          c.classList.add('border-slate-700', 'bg-slate-800/60');
+        });
+        const activeCard = document.getElementById(`neckCard_${val}`);
+        if (activeCard) {
+          activeCard.classList.remove('border-slate-700', 'bg-slate-800/60');
+          activeCard.classList.add('border-2', 'border-sky-500', 'bg-slate-800');
+        }
+      }
+
+      if (key === 'sleeveType') {
+        document.querySelectorAll('.sleeve-card').forEach(c => {
+          c.classList.remove('border-2', 'border-sky-500', 'bg-slate-800');
+          c.classList.add('border-slate-700', 'bg-slate-800/60');
+        });
+        const activeCard = document.getElementById(`sleeveCard_${val}`);
+        if (activeCard) {
+          activeCard.classList.remove('border-slate-700', 'bg-slate-800/60');
+          activeCard.classList.add('border-2', 'border-sky-500', 'bg-slate-800');
+        }
+      }
+
+      renderPatterns();
+      if (state.showMannequin) renderMannequinModel();
+    }
+
+    function switchSidebarTab(tabName) {
+      document.querySelectorAll('.sidebar-tab').forEach(tab => tab.classList.add('hidden'));
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('text-white', 'bg-sky-600', 'shadow-md', 'shadow-sky-600/30');
+        btn.classList.add('text-slate-400');
+      });
+
+      const tabMap = {
+        measurements: 'tabContentMeasurements',
+        generator: 'tabContentGenerator',
+        imagetopattern: 'tabContentImageToPattern',
+        export: 'tabContentExport'
+      };
+
+      const btnMap = {
+        measurements: 'btnTabMeasurements',
+        generator: 'btnTabGenerator',
+        imagetopattern: 'btnTabImageToPattern',
+        export: 'btnTabExport'
+      };
+
+      if (tabMap[tabName]) {
+        document.getElementById(tabMap[tabName]).classList.remove('hidden');
+        if (document.getElementById(btnMap[tabName])) {
+          document.getElementById(btnMap[tabName]).classList.add('text-white', 'bg-sky-600', 'shadow-md', 'shadow-sky-600/30');
+        }
+      }
+    }
+
+    function setUnit(u) {
+      state.unit = u;
+      document.getElementById('unitCmBtn').className = u === 'cm' ? 'px-2.5 py-1 rounded-md text-white bg-sky-600 font-bold shadow-sm' : 'px-2.5 py-1 rounded-md text-slate-400 font-medium';
+      document.getElementById('unitInchBtn').className = u === 'inch' ? 'px-2.5 py-1 rounded-md text-white bg-sky-600 font-bold shadow-sm' : 'px-2.5 py-1 rounded-md text-slate-400 font-medium';
+      document.getElementById('unitLabelDisplay').innerText = u === 'cm' ? '(سانتی‌متر)' : '(اینچ)';
+      renderPatterns();
+    }
+
+    function populateMeasurementInputs() {
+      for (const [key, value] of Object.entries(state.measurements)) {
+        const el = document.getElementById(`m_${key}`);
+        if (el) el.value = value;
+      }
+    }
+
+    function applyStandardPreset(presetKey) {
+      if (SIZE_PRESETS[presetKey]) {
+        const data = SIZE_PRESETS[presetKey];
+        for (const [key, val] of Object.entries(data)) {
+          state.measurements[key] = val;
+          const input = document.getElementById(`m_${key}`);
+          if (input) input.value = val;
+        }
+        renderPatterns();
+      }
+    }
+
+    function updateMeasurement(key, val) {
+      state.measurements[key] = parseFloat(val) || 0;
+      if (key === 'ease') {
+        document.getElementById('txtEaseValue').innerText = `${parseFloat(val).toFixed(1)} cm`;
+      }
+      renderPatterns();
+    }
+
+    function togglePatternPiece(pieceKey, isChecked) {
+      state.patterns[pieceKey] = isChecked;
+      renderPatterns();
+    }
+
+    function toggleSeamAllowance(enabled) {
+      state.seamAllowance.enabled = enabled;
+      document.getElementById('seamWidthContainer').style.opacity = enabled ? '1' : '0.4';
+      renderPatterns();
+    }
+
+    function updateSeamWidth(val) {
+      state.seamAllowance.widthCm = parseFloat(val);
+      renderPatterns();
+    }
+
+    function setupCanvasInteractions() {
+      const viewport = document.getElementById('canvasViewport');
+
+      viewport.addEventListener('mousedown', (e) => {
+        if (e.target.classList.contains('drag-handle')) {
+          const key = e.target.getAttribute('data-handle-key');
+          state.dragHandle.active = true;
+          state.dragHandle.targetKey = key;
+          state.dragHandle.startMousePos = { x: e.clientX, y: e.clientY };
+          state.dragHandle.initialValue = state.measurements[key] || 0;
+          return;
+        }
+
+        if (e.button === 0) {
+          state.isPanning = true;
+          state.startPan = { x: e.clientX - state.pan.x, y: e.clientY - state.pan.y };
+        }
+      });
+
+      window.addEventListener('mousemove', (e) => {
+        if (state.dragHandle.active) {
+          const deltaY = (state.dragHandle.startMousePos.y - e.clientY) / (10 * state.zoom);
+          const key = state.dragHandle.targetKey;
+          const newVal = Math.max(5, state.dragHandle.initialValue + deltaY);
+          state.measurements[key] = parseFloat(newVal.toFixed(1));
+          
+          const input = document.getElementById(`m_${key}`);
+          if (input) input.value = state.measurements[key];
+
+          renderPatterns();
+          return;
+        }
+
+        if (state.isPanning) {
+          state.pan.x = e.clientX - state.startPan.x;
+          state.pan.y = e.clientY - state.startPan.y;
+          updateCanvasTransform();
+        }
+
+        const rect = viewport.getBoundingClientRect();
+        const mouseX = (e.clientX - rect.left - state.pan.x) / state.zoom;
+        const mouseY = (e.clientY - rect.top - state.pan.y) / state.zoom;
+        
+        const cmX = (mouseX / 10).toFixed(1);
+        const cmY = (mouseY / 10).toFixed(1);
+        document.getElementById('mouseCoords').innerText = `X: ${cmX} cm, Y: ${cmY} cm`;
+      });
+
+      window.addEventListener('mouseup', () => {
+        state.isPanning = false;
+        state.dragHandle.active = false;
+      });
+
+      viewport.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
+        zoomCanvas(zoomFactor);
+      });
+    }
+
+    function zoomCanvas(factor) {
+      state.zoom = Math.min(Math.max(0.2, state.zoom * factor), 5.0);
+      document.getElementById('zoomPercentage').innerText = `${Math.round(state.zoom * 100)}%`;
+      updateCanvasTransform();
+    }
+
+    function resetCanvasView() {
+      state.zoom = 1.0;
+      state.pan = { x: 80, y: 60 };
+      document.getElementById('zoomPercentage').innerText = '100%';
+      updateCanvasTransform();
+    }
+
+    function updateCanvasTransform() {
+      const g = document.getElementById('canvasTransformGroup');
+      g.setAttribute('transform', `translate(${state.pan.x}, ${state.pan.y}) scale(${state.zoom})`);
+    }
+
+    // MAIN CAD DRAFTING ENGINE
+    function renderPatterns() {
+      const group = document.getElementById('patternsGroup');
+      const annoGroup = document.getElementById('annotationsGroup');
+      const handlesGroup = document.getElementById('handlesGroup');
+
+      group.innerHTML = '';
+      annoGroup.innerHTML = '';
+      handlesGroup.innerHTML = '';
+
+      const m = state.measurements;
+      const ease = m.ease || 0;
+      const seam = state.seamAllowance.enabled ? state.seamAllowance.widthCm * 10 : 0;
+
+      const activeList = [];
+      let currentX = 50;
+
+      // 1. BODICE FRONT & BACK DRAFT
+      if (state.patterns.bodice) {
+        activeList.push('بالاتنه جلو و پشت');
+
+        const chestQuarter = ((m.chest + ease) / 4) * 10;
+        const waistQuarter = ((m.waist + ease) / 4) * 10;
+        
+        let lengthBodice = m.backLength * 10;
+        const neckW = ((m.chest / 12) + 0.5) * 10;
+        let neckDFront = ((m.chest / 12) + 1.5) * 10 + (parseFloat(state.styleOptions.neckDepthOffset || 1.0) * 10);
+
+        const shoulderW = (m.shoulder / 2) * 10;
+        const shoulderSlope = 22;
+        const armholeD = ((m.chest / 4) + 1.5) * 10;
+
+        // Front Bodice
+        const pFront = {
+          A: { x: currentX, y: 0 },
+          B: { x: currentX + neckW, y: 0 },
+          C: { x: currentX + shoulderW, y: shoulderSlope },
+          D: { x: currentX + chestQuarter, y: armholeD },
+          E: { x: currentX + waistQuarter, y: lengthBodice },
+          F: { x: currentX, y: lengthBodice },
+          G: { x: currentX, y: neckDFront }
+        };
+
+        let pathFrontStr = '';
+        if (state.styleOptions.neckType === 'vneck') {
+          pathFrontStr = `M ${pFront.A.x} ${pFront.A.y} L ${pFront.B.x} ${pFront.B.y} L ${pFront.C.x} ${pFront.C.y} Q ${pFront.C.x - 10} ${pFront.D.y - 15}, ${pFront.D.x} ${pFront.D.y} L ${pFront.E.x} ${pFront.E.y} L ${pFront.F.x} ${pFront.F.y} L ${pFront.G.x} ${pFront.G.y} L ${pFront.B.x} ${pFront.B.y}`;
+        } else if (state.styleOptions.neckType === 'square') {
+          pathFrontStr = `M ${pFront.A.x} ${pFront.A.y} L ${pFront.B.x} ${pFront.B.y} L ${pFront.C.x} ${pFront.C.y} Q ${pFront.C.x - 10} ${pFront.D.y - 15}, ${pFront.D.x} ${pFront.D.y} L ${pFront.E.x} ${pFront.E.y} L ${pFront.F.x} ${pFront.F.y} L ${pFront.G.x} ${pFront.G.y} L ${pFront.B.x} ${pFront.G.y} L ${pFront.B.x} ${pFront.B.y}`;
+        } else {
+          pathFrontStr = `M ${pFront.A.x} ${pFront.A.y} L ${pFront.B.x} ${pFront.B.y} L ${pFront.C.x} ${pFront.C.y} Q ${pFront.C.x - 10} ${pFront.D.y - 15}, ${pFront.D.x} ${pFront.D.y} L ${pFront.E.x} ${pFront.E.y} L ${pFront.F.x} ${pFront.F.y} L ${pFront.G.x} ${pFront.G.y} Q ${pFront.A.x + 10} ${pFront.G.y}, ${pFront.B.x} ${pFront.B.y}`;
+        }
+
+        drawPatternPiece(group, annoGroup, pathFrontStr, "بالاتنه جلو (Front Bodice)", seam, pFront.A.x + 20, lengthBodice / 2);
+        drawControlHandle(handlesGroup, pFront.G.x, pFront.G.y, 'backLength', 'قد بالاتنه');
+        drawControlHandle(handlesGroup, pFront.C.x, pFront.C.y, 'shoulder', 'عرض شانه');
+
+        // Back Bodice
+        const currentXBack = currentX + chestQuarter + 120;
+        const pBack = {
+          A: { x: currentXBack, y: 0 },
+          B: { x: currentXBack + neckW, y: 0 },
+          C: { x: currentXBack + shoulderW, y: shoulderSlope },
+          D: { x: currentXBack + chestQuarter, y: armholeD },
+          E: { x: currentXBack + waistQuarter, y: lengthBodice },
+          F: { x: currentXBack, y: lengthBodice },
+          G: { x: currentXBack, y: 15 }
+        };
+
+        const pathBackStr = `M ${pBack.A.x} ${pBack.A.y} L ${pBack.B.x} ${pBack.B.y} L ${pBack.C.x} ${pBack.C.y} Q ${pBack.C.x - 8} ${pBack.D.y - 20}, ${pBack.D.x} ${pBack.D.y} L ${pBack.E.x} ${pBack.E.y} L ${pBack.F.x} ${pBack.F.y} L ${pBack.G.x} ${pBack.G.y} Q ${pBack.A.x + 5} ${pBack.G.y}, ${pBack.B.x} ${pBack.B.y}`;
+
+        drawPatternPiece(group, annoGroup, pathBackStr, "بالاتنه پشت (Back Bodice)", seam, pBack.A.x + 20, lengthBodice / 2);
+
+        currentX = currentXBack + chestQuarter + 140;
+      }
+
+      // 2. SLEEVE DRAFT
+      if (state.patterns.sleeve) {
+        activeList.push('آستین');
+
+        let sleeveL = m.sleeve * 10;
+        if (state.styleOptions.sleeveType === 'short') sleeveL *= 0.45;
+
+        let bicepW = ((m.chest / 3) + 3) * 10 * parseFloat(state.styleOptions.puffScale || 1.0);
+        const capHeight = ((m.chest / 8) + 1) * 10;
+        const wristHalf = (m.wrist / 2) * 10 + 10;
+
+        const pSleeve = {
+          Top: { x: currentX + bicepW / 2, y: 0 },
+          LeftCap: { x: currentX, y: capHeight },
+          RightCap: { x: currentX + bicepW, y: capHeight },
+          LeftWrist: { x: currentX + (bicepW / 2) - wristHalf, y: sleeveL },
+          RightWrist: { x: currentX + (bicepW / 2) + wristHalf, y: sleeveL }
+        };
+
+        const pathSleeveStr = `M ${pSleeve.Top.x} ${pSleeve.Top.y} C ${pSleeve.Top.x - bicepW / 4} ${pSleeve.Top.y}, ${pSleeve.LeftCap.x + 10} ${pSleeve.LeftCap.y - capHeight / 2}, ${pSleeve.LeftCap.x} ${pSleeve.LeftCap.y} L ${pSleeve.LeftWrist.x} ${pSleeve.LeftWrist.y} L ${pSleeve.RightWrist.x} ${pSleeve.RightWrist.y} L ${pSleeve.RightCap.x} ${pSleeve.RightCap.y} C ${pSleeve.RightCap.x - 10} ${pSleeve.RightCap.y - capHeight / 2}, ${pSleeve.Top.x + bicepW / 4} ${pSleeve.Top.y}, ${pSleeve.Top.x} ${pSleeve.Top.y}`;
+
+        drawPatternPiece(group, annoGroup, pathSleeveStr, state.styleOptions.sleeveType === 'puff' ? "آستین پف‌دار" : "آستین (Sleeve)", seam, currentX + 15, sleeveL / 2);
+        drawControlHandle(handlesGroup, pSleeve.RightWrist.x, pSleeve.RightWrist.y, 'sleeve', 'قد آستین');
+
+        currentX += bicepW + 120;
+      }
+
+      // 3. PANTS DRAFT
+      if (state.patterns.pants) {
+        activeList.push('شلوار');
+
+        const waistQ = ((m.waist + ease) / 4) * 10;
+        const hipQ = ((m.hip + ease) / 4) * 10;
+        const pLen = m.pantsLength * 10;
+        const crotchD = m.crotch * 10;
+        const legW = (m.wrist + 4) * 10;
+
+        const pathPantsStr = `M ${currentX} 0 L ${currentX + waistQ} 0 L ${currentX + hipQ + 25} ${crotchD} L ${currentX + legW} ${pLen} L ${currentX} ${pLen} L ${currentX} 0`;
+
+        drawPatternPiece(group, annoGroup, pathPantsStr, "الگوی شلوار (Pants)", seam, currentX + 15, pLen / 2);
+        drawControlHandle(handlesGroup, currentX + legW, pLen, 'pantsLength', 'قد شلوار');
+
+        currentX += hipQ + 140;
+      }
+
+      // 4. CIRCLE SKIRT DRAFT
+      if (state.patterns.skirt) {
+        activeList.push('دامن کلوش');
+
+        const waistR = ((m.waist + ease) / (2 * Math.PI)) * 10;
+        const skirtL = (m.backLength * 1.2) * 10;
+        const outerR = waistR + skirtL;
+
+        const pathSkirtStr = `M ${currentX + waistR} 0 A ${waistR} ${waistR} 0 0 1 ${currentX} ${waistR} L ${currentX} ${outerR} A ${outerR} ${outerR} 0 0 0 ${currentX + outerR} 0 Z`;
+
+        drawPatternPiece(group, annoGroup, pathSkirtStr, "دامن کلوش (Circle Skirt)", seam, currentX + waistR + 20, skirtL / 2);
+
+        currentX += outerR + 120;
+      }
+
+      document.getElementById('activePatternName').innerText = activeList.length > 0 ? activeList.join('، ') : 'هیچ قطعه‌ای انتخاب نشده است';
+      updatePrintLayout();
+    }
+
+    function drawPatternPiece(group, annoGroup, dPath, labelText, seamMm, textX, textY) {
+      const pGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+
+      if (seamMm > 0) {
+        const seamPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        seamPath.setAttribute("d", dPath);
+        seamPath.setAttribute("fill", "none");
+        seamPath.setAttribute("stroke", "#f59e0b");
+        seamPath.setAttribute("stroke-width", seamMm * 2);
+        seamPath.setAttribute("stroke-linejoin", "round");
+        seamPath.setAttribute("opacity", "0.4");
+        seamPath.setAttribute("stroke-dasharray", "5 5");
+        pGroup.appendChild(seamPath);
+      }
+
+      const mainPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      mainPath.setAttribute("d", dPath);
+      mainPath.setAttribute("fill", "rgba(2, 132, 199, 0.08)");
+      mainPath.setAttribute("stroke", "#38bdf8");
+      mainPath.setAttribute("stroke-width", "2");
+      mainPath.setAttribute("stroke-linejoin", "round");
+      pGroup.appendChild(mainPath);
+
+      group.appendChild(pGroup);
+
+      const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      text.setAttribute("x", textX);
+      text.setAttribute("y", textY);
+      text.setAttribute("fill", "#f8fafc");
+      text.setAttribute("font-size", "13");
+      text.setAttribute("font-weight", "bold");
+      text.setAttribute("font-family", "Vazirmatn, sans-serif");
+      text.textContent = labelText;
+      annoGroup.appendChild(text);
+    }
+
+    function drawControlHandle(group, x, y, measurementKey, label) {
+      const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+      circle.setAttribute("cx", x);
+      circle.setAttribute("cy", y);
+      circle.setAttribute("r", "7");
+      circle.setAttribute("fill", "#f59e0b");
+      circle.setAttribute("stroke", "#ffffff");
+      circle.setAttribute("stroke-width", "2");
+      circle.setAttribute("class", "drag-handle");
+      circle.setAttribute("data-handle-key", measurementKey);
+
+      const title = document.createElementNS("http://www.w3.org/2000/svg", "title");
+      title.textContent = `دستگیره تعاملی تغییر ${label}`;
+      circle.appendChild(title);
+
+      group.appendChild(circle);
+    }
+
+    function handleGarmentImageUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const img = document.getElementById('uploadedImagePreview');
+        img.src = e.target.result;
+        img.onload = () => {
+          document.getElementById('imageAnalysisContainer').classList.remove('hidden');
+          state.imagePattern.loaded = true;
+          state.imagePattern.element = img;
+          extractContourAndFit();
+        };
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function extractContourAndFit() {
+      if (!state.imagePattern.loaded) return;
+      const img = document.getElementById('uploadedImagePreview');
+      const canvas = document.getElementById('contourCanvas');
+      const ctx = canvas.getContext('2d');
+
+      canvas.width = img.naturalWidth || 300;
+      canvas.height = img.naturalHeight || 300;
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      renderPatterns();
+    }
+
+    function updatePrintLayout() {
+      const type = document.getElementById('paperSizeSelect').value;
+      state.paper.type = type;
+
+      if (type === 'a4') {
+        state.paper.widthMm = 210;
+        state.paper.heightMm = 297;
+      } else if (type === 'letter') {
+        state.paper.widthMm = 216;
+        state.paper.heightMm = 279;
+      } else {
+        state.paper.widthMm = 900;
+        state.paper.heightMm = 1200;
+      }
+
+      const gridGroup = document.getElementById('tiledPagesGroup');
+      gridGroup.innerHTML = '';
+
+      if (!state.display.tiledPages) return;
+
+      const bbox = document.getElementById('patternsGroup').getBBox();
+      if (bbox.width === 0 || bbox.height === 0) return;
+
+      const pW = state.paper.widthMm * 10;
+      const pH = state.paper.heightMm * 10;
+
+      const cols = Math.max(1, Math.ceil((bbox.width + 100) / pW));
+      const rows = Math.max(1, Math.ceil((bbox.height + 100) / pH));
+
+      document.getElementById('txtPageCount').innerText = `${cols * rows} صفحه (${cols}×${rows})`;
+
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          const pageX = bbox.x - 20 + (c * pW);
+          const pageY = bbox.y - 20 + (r * pH);
+
+          const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+          rect.setAttribute("x", pageX);
+          rect.setAttribute("y", pageY);
+          rect.setAttribute("width", pW);
+          rect.setAttribute("height", pH);
+          rect.setAttribute("fill", "none");
+          rect.setAttribute("stroke", "#38bdf8");
+          rect.setAttribute("stroke-width", "1");
+          rect.setAttribute("stroke-dasharray", "6 4");
+          rect.setAttribute("opacity", "0.6");
+          gridGroup.appendChild(rect);
+        }
+      }
+    }
+
+    function toggleTiledPageGrid(show) {
+      state.display.tiledPages = show;
+      updatePrintLayout();
+    }
+
+    function downloadPatternSVG() {
+      const svgEl = document.getElementById('patternSvg');
+      const serializer = new XMLSerializer();
+      let source = serializer.serializeToString(svgEl);
+
+      const blob = new Blob([source], {type: "image/svg+xml;charset=utf-8"});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Kids_Garment_Pattern_1to1_${Date.now()}.svg`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+
+    function downloadTiledPDF() {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({
+        orientation: 'p',
+        unit: 'mm',
+        format: state.paper.type === 'a4' ? 'a4' : 'letter'
+      });
+
+      doc.setFontSize(14);
+      doc.text("KIDS GARMENT PATTERN STUDIO - 1:1 SCALE TILED PDF", 15, 20);
+      doc.setFontSize(10);
+      doc.text("Grid Scale Test Box: 50mm x 50mm", 15, 28);
+      doc.rect(15, 32, 50, 50);
+
+      doc.save(`Kids_Pattern_Tiled_${Date.now()}.pdf`);
+    }
+
+    function triggerDirectPrint() {
+      window.print();
+    }
+
+    function saveProjectToLocal() {
+      localStorage.setItem('kids_pattern_project', JSON.stringify(state));
+      alert('پروژه با موفقیت در مرورگر شما ذخیره گردید.');
+    }
+
+    function exportProjectJSON() {
+      const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Kids_Pattern_Project_${Date.now()}.json`;
+      a.click();
+    }
+
+    function importProjectJSON(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        try {
+          const loadedState = JSON.parse(evt.target.result);
+          Object.assign(state, loadedState);
+          populateMeasurementInputs();
+          if (state.sizeChartImgData) displaySizeChartImage(state.sizeChartImgData);
+          renderPatterns();
+          alert('پروژه با موفقیت بارگذاری گردید.');
+        } catch (err) {
+          alert('خطا در بارگذاری فایل پروژه.');
+        }
+      };
+      reader.readAsText(file);
+    }
+  </script>
+</body>
+</html>
