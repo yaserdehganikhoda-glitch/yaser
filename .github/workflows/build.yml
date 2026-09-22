@@ -31,7 +31,8 @@ jobs:
           gradle-version: '8.13'
 
       - name: Build debug APK
-        run: gradle assembleDebug --no-daemon
+        run: ./gradlew assembleDebug --stacktrace --info
+
 
       - name: Build release AAB
         run: gradle bundleRelease --no-daemon
